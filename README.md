@@ -9,7 +9,7 @@ track it's own Azimuth, therefore the PCB integrates a magnetometer based on the
 Since this board is used for accurate reception, it includes two power feeds with a OCXO/GPS stabilized 10 MHz feed for up to
 two external LNA's and downconverters. For external power amplifiers, the board supplies switchable 5V (max. 5A), 24V and 48V.
 
-<img src="https://github.com/DL7AD/seatel/assets/5694705/ab7390b9-cf2e-429b-9e39-52ff04ff3381" height="470" />
-<img src="https://github.com/DL7AD/seatel/assets/5694705/78faea67-9972-4dff-94eb-4ea224f8aa96" height="470" />
-<img src="https://github.com/DL7AD/seatel/assets/5694705/d21adcf0-5716-4258-be62-a6ccae9e2e50" height="635" />
-<img src="https://github.com/DL7AD/seatel/assets/5694705/713eced3-8377-4180-8499-a58c5dcd020d" height="635" />
+<img src="https://github.com/DL7AD/seatel/assets/5694705/ab7390b9-cf2e-429b-9e39-52ff04ff3381" height="380" />
+<img src="https://github.com/DL7AD/seatel/assets/5694705/78faea67-9972-4dff-94eb-4ea224f8aa96" height="380" />
+<img src="https://github.com/DL7AD/seatel/assets/5694705/d21adcf0-5716-4258-be62-a6ccae9e2e50" height="514" />
+<img src="https://github.com/DL7AD/seatel/assets/5694705/713eced3-8377-4180-8499-a58c5dcd020d" height="514" />
