@@ -429,7 +429,7 @@ static void print_page(struct netconn *conn)
         </div>\n\
         </div>\n\
         </div>\n\
-        <div class='container' style='width:531px;height:410px;'>\n\
+        <div class='container' style='width:531px;height:276px;'>\n\
         <h1>Power</h1>\n\
         <hr />\n\
         <table style='float:left;'>\n\
@@ -473,6 +473,32 @@ static void print_page(struct netconn *conn)
         <td></td>\n\
         <td id='pwr_ocxo_v'></td>\n\
         <td id='pwr_ocxo_p'></td>\n\
+        </tr>\n\
+        </table>\n\
+        </div>\n\
+        <div class='container' style='width:531px;height:116px;'>\n\
+        <h1>GNSS</h1>\n\
+        <hr />\n\
+        <table style='float:left;'>\n\
+        <tr>\n\
+        <td width='40'>Lat</td>\n\
+        <td width='70'>53.5000°</td>\n\
+        <td width='10' style='border:0;'></td>\n\
+        <td width='40'>Alt</td>\n\
+        <td width='80'>53.5m</td>\n\
+        <td width='10' style='border:0;'></td>\n\
+        <td width='100'>OXCO Counts</td>\n\
+        <td width='100'>20000000 &#x1F7E2;</td>\n\
+        </tr>\n\
+        <tr>\n\
+        <td>Lon</td>\n\
+        <td>13.5000°</td>\n\
+        <td style='border:0;'></td>\n\
+        <td>Sats</td>\n\
+        <td>8</td>\n\
+        <td style='border:0;'></td>\n\
+        <td>DAC Value</td>\n\
+        <td>1980</td>\n\
         </tr>\n\
         </table>\n\
         </div>\n\
