@@ -1,4 +1,5 @@
 #include "mde.h"
+#include "imu.h"
 
 static int8_t motor_az = 0;
 static int8_t motor_el = 0;
@@ -38,7 +39,6 @@ static bool mde_exchange(uint16_t mosi, uint16_t* miso)
     spiSelect(&SPID3);
     spiExchange(&SPID3, 2, tx, rx);
     spiUnselect(&SPID3);
-
     if(miso != NULL)
         *miso = (rx[0] << 8) | rx[1];
 
@@ -75,7 +75,8 @@ static THD_FUNCTION(mde, arg)
         if(power_up && !is_powered_up)
         {
             palSetLine(LINE_MDE_PWR);
-            chThdSleepMilliseconds(5000);
+            imu_calibrate(); // Takes 1 second
+            chThdSleepMilliseconds(4000);
 
             mde_exchange(0x5ba5, NULL); // 26.7533859 init
             mde_exchange(0xf4ff, NULL); // 26.7534515 init
