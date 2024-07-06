@@ -95,7 +95,7 @@ void ocxo_init(void)
     palSetLineMode(LINE_OCXO_10M, PAL_MODE_UNCONNECTED);
     palSetLineMode(LINE_OCXO_20M, PAL_MODE_ALTERNATE(1));
 
-    palSetLineMode(LINE_GPS_1PPS, PAL_MODE_INPUT);
+    palSetLineMode(LINE_GPS_1PPS, PAL_MODE_INPUT_PULLDOWN);
     palEnableLineEvent(LINE_GPS_1PPS, PAL_EVENT_MODE_RISING_EDGE);
     palSetLineCallback(LINE_GPS_1PPS, exti_cb, NULL);
 
