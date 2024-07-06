@@ -29,12 +29,6 @@ uint16_t imu_get_rot_z(void);
 int16_t imu_get_el_pos(void);
 int16_t imu_get_el_spd(void);
 
+void imu_calibrate(void);
+
 #endif
-
-
-//543 x
-//534 x
-//354 x
-//453 x
-//345 x
-//435 x
