@@ -142,14 +142,14 @@ bool sysWriteI2CN(I2CDriver *bus, const I2CConfig *cfg, i2caddr_t addr,
  *
  */
 static void ina3221_lock(void) {
-  chMtxLock(&ina3221_mtx);
+  //chMtxLock(&ina3221_mtx);
 }
 
 /**
  *
  */
 static void ina3221_unlock(void) {
-  chMtxUnlock(&ina3221_mtx);
+  //chMtxUnlock(&ina3221_mtx);
 }
 
 /**
@@ -394,10 +394,10 @@ THD_FUNCTION(ina3221_thd, arg)
  */
 bool ina3221_start(void)
 {
-    //if(chThdCreateFromHeap(NULL, THD_WORKING_AREA_SIZE(512), "INA3221",
-    //                       NORMALPRIO - 20, ina3221_thd, NULL) == NULL) {
-    //    return false;
-    //}
+    if(chThdCreateFromHeap(NULL, THD_WORKING_AREA_SIZE(1024), "INA3221",
+                           NORMALPRIO - 20, ina3221_thd, NULL) == NULL) {
+        return false;
+    }
     chThdSleep(TIME_MS2I(10));
 
     return true;
