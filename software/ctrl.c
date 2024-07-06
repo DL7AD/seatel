@@ -74,11 +74,11 @@ void el_set_tgt_pos(int16_t position) {
 void el_set_tgt_pos_spd(int16_t speed) {
     el_tgt_pos_spd = speed;
 
-    char buf[64];
-    uint32_t ms = TIME_I2MS(chVTGetSystemTimeX());
-    chsnprintf(buf, sizeof(buf), "[%.3f] el_spd=%d\n",
-        ms/1000.0, speed);
-    debug_print(buf);
+//    char buf[64];
+//    uint32_t ms = TIME_I2MS(chVTGetSystemTimeX());
+//    chsnprintf(buf, sizeof(buf), "[%.3f] el_spd=%d\n",
+//        ms/1000.0, speed);
+//    debug_print(buf);
 }
 
 void sk_set_tgt_pos(int16_t position) {
@@ -125,6 +125,12 @@ static THD_FUNCTION(ctrl, arg)
 
     while(true)
     {
+        if(!imu_get_accel_x() && !imu_get_accel_y() && !imu_get_accel_z()) { // IMU failure, disable motors
+            az_set_const_trq(0);
+            el_set_const_trq(0);
+            sk_set_const_trq(0);
+        }
+
         // Azimuth calibration
         if(az_flag_calibrate)
         {
@@ -190,8 +196,8 @@ static THD_FUNCTION(ctrl, arg)
 
         // Elevation control
         int16_t imu = imu_get_el_pos();
-        int8_t trq0  = -24; // Holding torque required for elevation 0°
-        int8_t trq90 =  15; // Holding torque required for elevation 90°
+        int8_t trq0  = 0; // Holding torque required for elevation 0°
+        int8_t trq90 = 0; // Holding torque required for elevation 90°
         int8_t static_trq = trq0+(trq90-trq0) * imu / 16384;
 
         switch(el_state) {
@@ -217,8 +223,8 @@ static THD_FUNCTION(ctrl, arg)
                 int16_t spd = imu_get_el_spd();
                 int16_t moving_trq = (el_tgt_spd-spd)/10;
                 int16_t trq = moving_trq + static_trq;
-                if(trq >  30) trq =  30;
-                if(trq < -45) trq = -45;
+                if(trq >  25) trq =  25;
+                if(trq < -25) trq = -25;
                 mde_set_trq_el(trq);
                 break;
             }
@@ -258,5 +264,5 @@ static THD_FUNCTION(ctrl, arg)
 
 void ctrl_init(void)
 {
-    chThdCreateStatic(waCtrl, sizeof(waCtrl), LOWPRIO, ctrl, NULL);
+    chThdCreateStatic(waCtrl, sizeof(waCtrl), NORMALPRIO, ctrl, NULL);
 }
