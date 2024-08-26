@@ -29,4 +29,7 @@ void mde_set_trq_el(int8_t trq);
 int8_t mde_get_trq_sk(void);
 void mde_set_trq_sk(int8_t trq);
 
+int16_t mde_get_az_enc_off(void);
+void mde_set_az_enc_off(int16_t off);
+
 #endif

@@ -10,19 +10,16 @@ static const GPTConfig gpt_cfg = {
 };
 
 static const DACConfig dac_cfg = {
-    .init     = 2047U,
+    .init     = 1850U,
     .datamode = DAC_DHRM_12BIT_RIGHT,
     .cr       = 0
 };
 
-static const SerialConfig gps_cfg = {
-    9600,
-    0,
-    0,
-    0
-};
-
-int32_t last_cnt;
+static int32_t ocxo_cntr[3] = {0,1,2};
+static uint32_t cntr_i = 0;
+static int32_t out_ocxo_cntr;
+static systime_t last_pulse;
+static uint16_t dac_val = 1850;
 
 static THD_WORKING_AREA(waOCXO, 1024);
 static THD_FUNCTION(ocxo, arg)
@@ -37,56 +34,41 @@ static THD_FUNCTION(ocxo, arg)
 
     while(true)
     {
-        if(last_cnt != -1)
+        if(ocxo_cntr[0] == ocxo_cntr[1] && ocxo_cntr[1] == ocxo_cntr[2])
         {
+            out_ocxo_cntr = ocxo_cntr[0];
+            ocxo_cntr[0] = -1;
+
             char buf[64];
             uint32_t ms = TIME_I2MS(chVTGetSystemTimeX());
             chsnprintf(buf, sizeof(buf), "[%.3f] cntr=%d\n",
-                ms/1000.0, last_cnt);
+                ms/1000.0, out_ocxo_cntr);
             debug_print(buf);
-            last_cnt = -1;
-        }
 
-        //dacPutChannelX(&DACD1, 0, i++);
-
-        chThdSleepMilliseconds(100);
-    }
-}
-
-static THD_WORKING_AREA(waGPS, 1024);
-static THD_FUNCTION(gps, arg)
-{
-    (void)arg;
-
-    char buf[128];
-    size_t idx = 0;
-
-    while (true)
-    {
-        char c = sdGet(&SD3);
-        if(!c) {
-            chThdSleepMilliseconds(50);
-            continue;
-        }
-        if (c == '\n' || c == '\r') {
-            buf[idx] = '\0';
-            debug_print(buf);
-            idx = 0;
-        } else {
-            if (idx < sizeof(buf)-1) {
-                buf[idx++] = c;
-            } else {
-                idx = 0;
+            if(out_ocxo_cntr > 20000001) {
+                dac_val -= 10;
+            } else if(out_ocxo_cntr < 19999999) {
+                dac_val += 10;
             }
+            dacPutChannelX(&DACD1, 0, dac_val);
         }
+        if(TIME_I2MS(chVTGetSystemTimeX()-last_pulse) > 100)
+        {
+            palClearLine(LINE_LED_1PPS);
+        }
+
+        chThdSleepMilliseconds(10);
     }
 }
 
 static void exti_cb(void *arg) {
     (void)arg;
 
-    last_cnt = GPTD2.tim->CNT;
+    ocxo_cntr[cntr_i++ % 3] = GPTD2.tim->CNT;
     GPTD2.tim->CNT = 0;
+    last_pulse = chVTGetSystemTimeX();
+
+    palSetLine(LINE_LED_1PPS);
 }
 
 void ocxo_init(void)
@@ -99,13 +81,26 @@ void ocxo_init(void)
     palEnableLineEvent(LINE_GPS_1PPS, PAL_EVENT_MODE_RISING_EDGE);
     palSetLineCallback(LINE_GPS_1PPS, exti_cb, NULL);
 
+    palSetLineMode(LINE_LED_1PPS, PAL_MODE_OUTPUT_PUSHPULL);
+    palClearLine(LINE_LED_1PPS);
+
     palSetLineMode(LINE_OCXO_DAC, PAL_MODE_INPUT_ANALOG);
     dacStart(&DACD1, &dac_cfg);
 
-    palSetLineMode(LINE_GPS_TXD, PAL_MODE_ALTERNATE(7));
-    palSetLineMode(LINE_GPS_RXD, PAL_MODE_ALTERNATE(7));
-    sdStart(&SD3, &gps_cfg);
-
-    chThdCreateStatic(waGPS, sizeof(waGPS), HIGHPRIO, gps, NULL);
     chThdCreateStatic(waOCXO, sizeof(waOCXO), HIGHPRIO, ocxo, NULL);
+}
+
+systime_t ocxo_get_last_pulse(void)
+{
+    return last_pulse;
+}
+
+int32_t ocxo_get_cntr(void)
+{
+    return out_ocxo_cntr;
+}
+
+uint16_t ocxo_get_dac_val(void)
+{
+    return dac_val;
 }

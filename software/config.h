@@ -9,21 +9,18 @@
 #define IP_SUFFIX                   123
 
 
-#define LWIP_IPADDR(p)              IP4_ADDR(p, 192, 168, 1,   IP_SUFFIX)
-#define LWIP_GATEWAY(p)             IP4_ADDR(p, 192, 168, 1,   1        )
+#define LWIP_IPADDR(p)              IP4_ADDR(p, 192, 168, 20,  IP_SUFFIX)
+#define LWIP_GATEWAY(p)             IP4_ADDR(p, 192, 168, 20,  1        )
 #define LWIP_NETMASK(p)             IP4_ADDR(p, 255, 255, 255, 0        )
 #define LWIP_ETHADDR_0              0xC2
 #define LWIP_ETHADDR_1              0xAF
 #define LWIP_ETHADDR_2              0x51
 #define LWIP_ETHADDR_3              0x03
-#define LWIP_ETHADDR_4              0x00
+#define LWIP_ETHADDR_4              0x14
 #define LWIP_ETHADDR_5              IP_SUFFIX
 
 
-
-
-#define LINE_CONNECTED              PAL_LINE(GPIOE, 9)
-#define LINE_READY                  PAL_LINE(GPIOE, 10)
+#define LINE_LED_READY              PAL_LINE(GPIOE, 10)
 
 #define LINE_PWR_LNA                PAL_LINE(GPIOE, 8)
 #define LINE_PWR_EXT_5V             PAL_LINE(GPIOD, 7)

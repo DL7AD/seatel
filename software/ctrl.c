@@ -23,8 +23,9 @@ static int16_t el_tgt_pos = 0;       // Elevation Target Position
 static int16_t el_tgt_pos_spd = 0;   // Elevation Target Position Speed
 static systime_t el_tgt_pos_tim = 0; // Elevation Target Position Update Time
 
-static int16_t sk_tgt_pos = 0;
+static int16_t sk_tgt_pos = 0;       // Skew Target Position
 
+systime_t last_loop_update = 0;
 
 void az_set_const_trq(int8_t torque) {
     az_flag_calibrate = false;
@@ -57,12 +58,6 @@ void az_set_tgt_pos(uint16_t position) {
 
 void az_set_tgt_pos_spd(int16_t speed) {
     az_tgt_pos_spd = speed;
-
-    char buf[64];
-    uint32_t ms = TIME_I2MS(chVTGetSystemTimeX());
-    chsnprintf(buf, sizeof(buf), "[%.3f] az_spd=%d\n",
-        ms/1000.0, speed);
-    debug_print(buf);
 }
 
 void el_set_tgt_pos(int16_t position) {
@@ -73,12 +68,6 @@ void el_set_tgt_pos(int16_t position) {
 
 void el_set_tgt_pos_spd(int16_t speed) {
     el_tgt_pos_spd = speed;
-
-//    char buf[64];
-//    uint32_t ms = TIME_I2MS(chVTGetSystemTimeX());
-//    chsnprintf(buf, sizeof(buf), "[%.3f] el_spd=%d\n",
-//        ms/1000.0, speed);
-//    debug_print(buf);
 }
 
 void sk_set_tgt_pos(int16_t position) {
@@ -125,7 +114,12 @@ static THD_FUNCTION(ctrl, arg)
 
     while(true)
     {
-        if(!imu_get_accel_x() && !imu_get_accel_y() && !imu_get_accel_z()) { // IMU failure, disable motors
+        // Failsafe
+        if((!imu_get_accel_x() && !imu_get_accel_y() && !imu_get_accel_z()) || // IMU failure
+             imu_get_rot_x() < 2070-800 || imu_get_rot_x() > 2070+800 ||       // x axis rotation excess
+             imu_get_rot_y() < 2070-800 || imu_get_rot_y() > 2070+800 ||       // x axis rotation excess
+             imu_get_rot_z() < 2070-800 || imu_get_rot_z() > 2070+800)         // z axis rotation excess
+        {
             az_set_const_trq(0);
             el_set_const_trq(0);
             sk_set_const_trq(0);
@@ -159,7 +153,7 @@ static THD_FUNCTION(ctrl, arg)
 
             case MOTOR_STATE_TARGET_POSITION:
             {
-                uint16_t enc = mde_get_az_enc_pos();
+                uint16_t enc = mde_get_az_enc_pos() + mde_get_az_enc_off();
                 uint16_t tgt = az_tgt_pos + az_tgt_pos_spd * TIME_I2MS(chVTGetSystemTimeX()-az_tgt_pos_tim)/1000.0;
                 uint16_t dir_diff = tgt-enc;
                 uint16_t dist = (uint16_t)(tgt-enc) < (uint16_t)(enc-tgt) ? tgt-enc : enc-tgt;
@@ -208,19 +202,23 @@ static THD_FUNCTION(ctrl, arg)
             {
                 int16_t tgt = el_tgt_pos + el_tgt_pos_spd * TIME_I2MS(chVTGetSystemTimeX()-el_tgt_pos_tim)/1000.0;
                 int16_t dist = tgt-imu;
-                uint16_t nullzone = 45; // original 91
+                uint16_t const_speed_range = 45;
 
                 el_tgt_spd = dist;
                 dir_el = el_tgt_spd < 0 ? -1 : 1;
-                if(abs(dist) > nullzone)
+
+                // Constant speed when very close
+                if(abs(dist) > const_speed_range)
                     if(abs(el_tgt_spd) <  1*182) el_tgt_spd = dir_el* 1*182;
+
+                // Limiter
                 if(abs(el_tgt_spd) > 15*182) el_tgt_spd = dir_el*15*182;
 
                 [[fallthrough]];
             }
             case MOTOR_STATE_CONST_SPEED:
             {
-                int16_t spd = imu_get_el_spd();
+                int16_t spd = abs(imu_get_el_spd()) < 70 ? 0 : imu_get_el_spd();
                 int16_t moving_trq = (el_tgt_spd-spd)/10;
                 int16_t trq = moving_trq + static_trq;
                 if(trq >  25) trq =  25;
@@ -248,21 +246,27 @@ static THD_FUNCTION(ctrl, arg)
         {
             char buf[128];
             uint32_t ms = TIME_I2MS(chVTGetSystemTimeX());
-            float az = mde_get_az_enc_pos()/182.044;
+            float az = (mde_get_az_enc_pos()+mde_get_az_enc_off())/182.044;
             float el = imu_get_el_pos()/182.044;
-            float tgt_az = az_tgt_pos/182.044;
-            float tgt_el = el_tgt_pos/182.044;
+            float tgt_az = az_tgt_pos / 182.044;
+            float tgt_el = el_tgt_pos / 182.044;
             chsnprintf(buf, sizeof(buf), "[%.3f] tgt=(%.2f,%.2f) pos=(%.2f,%.2f) diff=(%.2f,%.2f)\n",
                 ms/1000.0, tgt_az, tgt_el, az, el, az-tgt_az, el-tgt_el
             );
             debug_print(buf);
         }
 
-        chThdSleepMilliseconds(10);
+        last_loop_update = chVTGetSystemTimeX();
+        chThdSleepMilliseconds(20);
     }
 }
 
 void ctrl_init(void)
 {
     chThdCreateStatic(waCtrl, sizeof(waCtrl), NORMALPRIO, ctrl, NULL);
+}
+
+bool ctrl_is_running(void)
+{
+    return TIME_I2MS(chVTGetSystemTimeX()-last_loop_update) < 100;
 }

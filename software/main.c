@@ -1,23 +1,3 @@
-/*
-    ChibiOS/RT - Copyright (C) 2006-2013 Giovanni Di Sirio
-
-    Licensed under the Apache License, Version 2.0 (the "License");
-    you may not use this file except in compliance with the License.
-    You may obtain a copy of the License at
-
-        http://www.apache.org/licenses/LICENSE-2.0
-
-    Unless required by applicable law or agreed to in writing, software
-    distributed under the License is distributed on an "AS IS" BASIS,
-    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-    See the License for the specific language governing permissions and
-    limitations under the License.
-*/
-
-//#include <stdio.h>
-//#include <string.h>
-//#include <stdlib.h>
-
 #include "ch.h"
 #include "hal.h"
 #include "chprintf.h"
@@ -32,6 +12,7 @@
 #include "debug.h"
 #include "ina3221.h"
 #include "ocxo.h"
+#include "gps.h"
 
 lwipthread_opts_t netif;
 
@@ -46,7 +27,7 @@ static THD_FUNCTION(blinker, arg)
     (void)arg;
     while (true)
     {
-        palToggleLine(LINE_READY);
+        palToggleLine(LINE_LED_READY);
         chThdSleepMilliseconds(500);
     }
 }
@@ -60,12 +41,11 @@ void init(void)
     api_init();
     ina3221_start();
     ocxo_init();
+    gps_init();
 
-    // Configure state LEDs
-    palSetLineMode(LINE_CONNECTED, PAL_MODE_OUTPUT_PUSHPULL);
-    palSetLineMode(LINE_READY, PAL_MODE_OUTPUT_PUSHPULL);
-    palClearLine(LINE_CONNECTED);
-    palClearLine(LINE_READY);
+    // Configure blinker LED
+    palSetLineMode(LINE_LED_READY, PAL_MODE_OUTPUT_PUSHPULL);
+    palClearLine(LINE_LED_READY);
 
     // Configure power pins
     palSetLineMode(LINE_PWR_LNA,     PAL_MODE_OUTPUT_PUSHPULL);

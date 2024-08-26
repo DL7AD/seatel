@@ -1,11 +1,13 @@
 #include "mde.h"
 #include "imu.h"
+#include "ctrl.h"
 
 static int8_t motor_az = 0;
 static int8_t motor_el = 0;
 static int8_t motor_sk = 0;
 
 static uint16_t enc_az = 0;
+static int16_t enc_az_off = 0;
 static int16_t enc_az_speed = 0;
 
 static bool power_up; // Command flag to power up MDE
@@ -74,6 +76,7 @@ static THD_FUNCTION(mde, arg)
 
         if(power_up && !is_powered_up)
         {
+
             palSetLine(LINE_MDE_PWR);
             imu_calibrate(); // Takes 1 second
             chThdSleepMilliseconds(4000);
@@ -118,12 +121,16 @@ static THD_FUNCTION(mde, arg)
             is_powered_up = true;
         }
 
-        if(is_powered_up)
+        /* ctrl_is_running() hinders communication with MDE when control thread has crashed or stalled.
+         * This avoids a unwanted runaway (rotation speed gets too high) of the system, because the MDE
+         * will stop operation when no continuous communication is present.
+         */
+        if(is_powered_up && ctrl_is_running())
         {
             // Get encoder reading
             mde_exchange(0xFEFF, &miso);
             mde_exchange(0xFEFF, &miso);
-            //chThdSleepMilliseconds(50);
+
             mde_exchange(0xFEFF, &miso);
             mde_exchange(0xFEFF, &miso);
             mde_exchange(0xFDFF, &miso);
@@ -209,4 +216,14 @@ int8_t mde_get_trq_sk(void) {
 
 void mde_set_trq_sk(int8_t trq) {
     motor_sk = trq;
+}
+
+int16_t mde_get_az_enc_off(void)
+{
+    return enc_az_off;
+}
+
+void mde_set_az_enc_off(int16_t off)
+{
+    enc_az_off = off;
 }

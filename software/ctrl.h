@@ -13,6 +13,7 @@ typedef enum {
 #define MOTOR_STATE(x) ((x)==0 ? "CONST_TORQUE" : (x)==1 ? "CONST_SPEED" : (x)==2 ? "TARGET_POSITION" : "unknown")
 
 void ctrl_init(void);
+bool ctrl_is_running(void);
 
 void az_set_const_trq(int8_t torque);
 void az_set_const_spd(int16_t speed);

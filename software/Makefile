@@ -126,7 +126,7 @@ CSRC = $(ALLCSRC) \
        $(CHIBIOS)/os/various/evtimer.c \
        api.c http.c debug.c jquery.c favicon.c \
        mde.c imu.c ctrl.c ina3221.c ocxo.c \
-       main.c
+       gps.c main.c
 
 # C++ sources that can be compiled in ARM or THUMB mode depending on the global
 # setting.

@@ -10,7 +10,6 @@
 #include "lwip/netif.h"
 #include "chprintf.h"
 
-#include "main.h"
 #include "api.h"
 #include "imu.h"
 #include "mde.h"
@@ -62,7 +61,7 @@ static void server_serve(struct netconn *conn) {
     err_t err;
 
     // Switch connected-LED
-    palSetLine(LINE_CONNECTED);
+    palSetLine(LINE_LED_CONNECTED);
     connected = true;
 
     // Serve request
@@ -83,14 +82,15 @@ static void server_serve(struct netconn *conn) {
             {
                 case 'p':
                     // Get position of rotator
-                    az = mde_get_az_enc_pos() / 182.044;
-                    el = imu_get_el_pos()     / 182.044;
+                    az = (mde_get_az_enc_pos() + mde_get_az_enc_off()) / 182.044;
+                    el =  imu_get_el_pos()                             / 182.044;
                     chsnprintf(buf, sizeof(buf), "%.2f\n%.2f\n", az, el);
                     netconn_write(conn, buf, strlen(buf), NETCONN_COPY);
                     break;
                 case 'P':
                     // Set position of rotator
                     if(!extract_numbers(buf, &az, &el)) {
+                        netconn_write(conn, "RPRT 1\n", 7, NETCONN_COPY);
                         break; // Error
                     }
 
@@ -113,7 +113,7 @@ static void server_serve(struct netconn *conn) {
                     last_el = el;
                     last_cmd = chVTGetSystemTimeX();
 
-                    netconn_write(conn, "ack\n", 4, NETCONN_COPY);
+                    netconn_write(conn, "RPRT 0\n", 7, NETCONN_COPY);
 
 
                     break;
@@ -144,7 +144,7 @@ static void server_serve(struct netconn *conn) {
     netbuf_delete(inbuf);
 
     // Switch connected-LED
-    palClearLine(LINE_CONNECTED);
+    palClearLine(LINE_LED_CONNECTED);
     connected = false;
 }
 
@@ -180,6 +180,9 @@ THD_FUNCTION(apiserver, p) {
 
 void api_init(void)
 {
+    palSetLineMode(LINE_LED_CONNECTED, PAL_MODE_OUTPUT_PUSHPULL);
+    palClearLine(LINE_LED_CONNECTED);
+
     chThdCreateStatic(wa_api, sizeof(wa_api), API_THREAD_PRIORITY, apiserver, NULL);
 }
 

@@ -19,6 +19,8 @@
 #include "api.h"
 #include "debug.h"
 #include "ina3221.h"
+#include "ocxo.h"
+#include "gps.h"
 
 #define HTTP_PRINT(str) { \
     netconn_write(conn, (str), strlen((str)), NETCONN_NOCOPY); \
@@ -44,7 +46,7 @@ static void print_debug(struct netconn *conn)
 
 static void print_page(struct netconn *conn)
 {
-    char buf[128];
+    char buf[1024];
 
     HTTP_PRINT(
         "HTTP/1.1 200 OK\r\nContent-type: text/html\r\n\r\n\n\
@@ -194,11 +196,13 @@ static void print_page(struct netconn *conn)
         }\n\
         </style>\n\
         <script type='text/javascript'>\n\
+        const zeroPad = (num, places) => String(num).padStart(places, '0');\n\
+        var az_tgt,el_tgt,sk_tgt,az_off,el_off = 0;\n\
         var req = function() {\n\
             $.ajax({\n\
                 dataType: \"json\",\n\
                 url: \"/state.json\",\n\
-                success: function( data ) {\n\
+                success: function(data) {\n\
                     //$('#time').text('Time: ' + (val/100000));\n\
                     $('#motor_az').text(data['mde']['mot'][0]);\n\
                     $('#motor_el').text(data['mde']['mot'][1]);\n\
@@ -208,8 +212,14 @@ static void print_page(struct netconn *conn)
                     $('#motor_state_sk').text(data['ctrl']['state'][2]);\n\
                     $('#tgt_az').text(data['ctrl']['state'][0].localeCompare('TARGET_POSITION') ? 'MANUAL' : (data['ctrl']['tgt'][0]*360/65536).toFixed(2)+'°');\n\
                     $('#tgt_el').text(data['ctrl']['state'][1].localeCompare('TARGET_POSITION') ? 'MANUAL' : (data['ctrl']['tgt'][1]*360/65536).toFixed(2)+'°');\n\
+                    az_tgt = data['ctrl']['tgt'][0];\n\
+                    el_tgt = data['ctrl']['tgt'][1];\n\
+                    sk_tgt = data['ctrl']['tgt'][2];\n\
                     $('#enc').text(data['mde']['enc']['pos']);\n\
                     $('#enc_dec').text((data['mde']['enc']['pos']*360/65536).toFixed(2)+'°');\n\
+                    $('#off_az').text((data['mde']['enc']['off']*360/65536).toFixed(2)+'°');\n\
+                    az_off = data['mde']['enc']['off'];\n\
+                    $('#pos_and_off_az').text(((data['mde']['enc']['pos']+data['mde']['enc']['off'])*360/65536).toFixed(2)+'°');\n\
                     $('#enc_spd').text(data['mde']['enc']['spd']);\n\
                     $('#enc_spd_dec').text((data['mde']['enc']['spd']*360/65536).toFixed(2)+'°/sec');\n\
                     $('#imu_accel_x').text(data['imu']['accel'][0]);\n\
@@ -225,16 +235,17 @@ static void print_page(struct netconn *conn)
                     $('#imu_el_pos_dec').text((data['imu']['el']['pos']*360/65536).toFixed(2)+'°');\n\
                     $('#imu_el_spd').text(data['imu']['el']['spd']);\n\
                     $('#imu_el_spd_dec').text((data['imu']['el']['spd']*360/65536).toFixed(2)+'°');\n\
-                    var left = 141-(data['mde']['enc']['pos']-data['ctrl']['tgt'][0])*360/65536*60;\n\
-                    var top  = 141+(data['imu']['el']['pos'] -data['ctrl']['tgt'][1])*360/65536*60;\n\
+                    var az = data['mde']['enc']['pos'] + data['mde']['enc']['off'];\n\
+                    var el = data['imu']['el']['pos'];\n\
+                    var left = 141-(az-data['ctrl']['tgt'][0])*360/65536*60;\n\
+                    var top  = 141+(el-data['ctrl']['tgt'][1])*360/65536*60;\n\
                     if(top >  292) top  = 292;\n\
                     if(top <   -8) top  = -8;\n\
                     if(left > 292) left = 292;\n\
                     if(left <  -8) left = -8;\n\
                     $('#circle_deviation').css({'margin-left': left, 'margin-top': top});\n\
-                    var el = (16384-data['imu']['el']['pos'])/16384;\n\
-                    left = 138+Math.sin(data['mde']['enc']['pos']*2*Math.PI/65536)*150*el;\n\
-                    top  = 138-Math.cos(data['mde']['enc']['pos']*2*Math.PI/65536)*150*el;\n\
+                    left = 138+Math.sin(az*2*Math.PI/65536)*150*(16384-el)/16384;\n\
+                    top  = 138-Math.cos(az*2*Math.PI/65536)*150*(16384-el)/16384;\n\
                     $('#cross_pointing').css({'margin-left': left, 'margin-top': top});\n\
                     if(data['ctrl']['state'][0].localeCompare('TARGET_POSITION')) {\n\
                         $('#circle_target').css('visibility', 'hidden');\n\
@@ -245,7 +256,7 @@ static void print_page(struct netconn *conn)
                         $('#circle_target').css({'margin-left': left, 'margin-top': top});\n\
                         $('#circle_target').css('visibility', 'visible');\n\
                     }\n\
-                    $('#api_connected').text(data['api_connected'] ? 'CONNECTED' : 'DISCONNECTED');\n\
+                    $('#api_connected').html(data['api_connected'] ? 'CONNECTED &#x1F7E2;' : 'DISCONNECTED &#x1F534;');\n\
                     $('#pwr_lna1_v').text((data['pwr']['lna1'][0]/1000).toFixed(2)+' V');\n\
                     $('#pwr_lna1_p').text((data['pwr']['lna1'][1]/1000).toFixed(2)+' W');\n\
                     $('#pwr_lna2_v').text((data['pwr']['lna2'][0]/1000).toFixed(2)+' V');\n\
@@ -258,6 +269,19 @@ static void print_page(struct netconn *conn)
                     $('#pwr_ext24_p').text((data['pwr']['ext24'][1]/1000).toFixed(2)+' W');\n\
                     $('#pwr_mde_v').text((data['pwr']['mde'][0]/1000).toFixed(2)+' V');\n\
                     $('#pwr_mde_p').text((data['pwr']['mde'][1]/1000).toFixed(2)+' W');\n\
+                    $('#time').html('20'+\n\
+                        zeroPad(data['gps']['date']%100,2)+'-'+\n\
+                        zeroPad(Math.round(data['gps']['date']/100)%100,2)+'-'+\n\
+                        zeroPad(Math.round(data['gps']['date']/10000),2)+' '+\n\
+                        zeroPad(Math.round(data['gps']['time']/10000),2)+':'+\n\
+                        zeroPad(Math.round(data['gps']['time']/100)%100,2)+':'+\n\
+                        zeroPad(data['gps']['time']%100,2)+\n\
+                        (data['gps']['pulse'] ? ' &#x1F7E2;' : ''));\n\
+                    $('#lat').text((data['gps']['lat']).toFixed(5)+'°');\n\
+                    $('#lon').text((data['gps']['lon']).toFixed(5)+'°');\n\
+                    $('#alt').text((data['gps']['alt']).toFixed(1)+'m');\n\
+                    $('#sats').text(data['gps']['sats_sol']+'/x');\n\
+                    $('#ocxo').text(data['ocxo']['cntr']+' / '+data['ocxo']['dac']);\n\
                 },\n\
                 timeout: 1000\n\
             });\n\
@@ -294,14 +318,25 @@ static void print_page(struct netconn *conn)
         var calibrate = function() {\n\
             $.get('/calibrate');\n\
         }\n\
-        var set_az_tgt = function() {\n\
-            $.get('/set/tar/az/'+Math.round($('#az_tgt_in').val()*182.04));\n\
+        var set_az_tgt = function(az) {\n\
+            if(az != 0) { $.get('/set/tar/az/'+Math.round(az_tgt+az*182.04));\n\
+            } else {      $.get('/set/tar/az/'+Math.round($('#az_tgt_in').val()*182.04)); }\n\
         }\n\
-        var set_el_tgt = function() {\n\
-            $.get('/set/tar/el/'+Math.round($('#el_tgt_in').val()*182.04));\n\
+        var set_el_tgt = function(el) {\n\
+            if(el != 0) { $.get('/set/tar/el/'+Math.round(el_tgt+el*182.04));\n\
+            } else {      $.get('/set/tar/el/'+Math.round($('#el_tgt_in').val()*182.04)); }\n\
         }\n\
-        var set_sk_tgt = function() {\n\
-            $.get('/set/tar/sk/'+Math.round($('#sk_tgt_in').val()));\n\
+        var set_sk_tgt = function(sk) {\n\
+            if(sk != 0) { $.get('/set/tar/sk/'+Math.round(sk_tgt+sk*182.04));\n\
+            } else {      $.get('/set/tar/sk/'+Math.round($('#sk_tgt_in').val()*182.04)); }\n\
+        }\n\
+        var set_az_off = function(az) {\n\
+            if(az != 0) { $.get('/set/off/az/'+Math.round(az_off+az*182.04));\n\
+            } else {      $.get('/set/off/az/'+Math.round($('#az_off_in').val()*182.04)); }\n\
+        }\n\
+        var set_el_off = function(el) {\n\
+            if(el != 0) { $.get('/set/tar/el/'+Math.round(el_off+el*182.04));\n\
+            } else {      $.get('/set/tar/el/'+Math.round($('#el_off_in').val()*182.04)); }\n\
         }\n\
         var sw = function(tar, state) {\n\
             $.get('/sw/'+tar+'/'+state);\n\
@@ -349,7 +384,7 @@ static void print_page(struct netconn *conn)
     HTTP_PRINT(
         "</table>\n\
         </div>\n\
-        <div class='container' style='width:800px;height:410px;'>\n\
+        <div class='container' style='width:1349px;height:500px;'>\n\
         <h1>Sensors</h1>\n\
         <hr />\n\
         <table style='float:left;'>\n\
@@ -357,11 +392,27 @@ static void print_page(struct netconn *conn)
         <td width='200'>Sensor</td>\n\
         <td width='100'>Raw</td>\n\
         <td width='100'>Decoded</td>\n\
+        <td width='80'>Offset</td>\n\
+        <td width='120'>Set Offset</td>\n\
+        <td width='80'>Corrected</td>\n\
         </tr>\n\
         <tr>\n\
-        <td>Azimuth Encoder</td>\n\
-        <td id='enc'></td>\n\
-        <td id='enc_dec'></td>\n\
+        <td rowspan='2'>Azimuth Encoder</td>\n\
+        <td rowspan='2' id='enc'></td>\n\
+        <td rowspan='2' id='enc_dec'></td>\n\
+        <td id='off_az'></td>\n\
+        <td><input id='az_off_in' size='6' />° <input type='button' onclick='set_az_off(0)' value='Set' /></td>\n\
+        <td rowspan='2' align='center' id='pos_and_off_az'></td>\n\
+        </tr>\n\
+        <tr>\n\
+        <td colspan='2'>\n\
+        <input type='button' onclick='set_az_off(-10)' value='---' />\n\
+        <input type='button' onclick='set_az_off(-1)' value='--' />\n\
+        <input type='button' onclick='set_az_off(-0.1)' value='-' />\n\
+        <input type='button' onclick='set_az_off(0.1)' value='+' />\n\
+        <input type='button' onclick='set_az_off(1)' value='++' />\n\
+        <input type='button' onclick='set_az_off(10)' value='+++' />\n\
+        </td>\n\
         </tr>\n\
         <tr>\n\
         <td>Azimuth Encoder Speed</td>\n\
@@ -399,9 +450,22 @@ static void print_page(struct netconn *conn)
         <td id='imu_rot_z_dec'></td>\n\
         </tr>\n\
         <tr>\n\
-        <td>Elevation</td>\n\
-        <td id='imu_el_pos'></td>\n\
-        <td id='imu_el_pos_dec'></td>\n\
+        <td rowspan='2'>Elevation</td>\n\
+        <td rowspan='2' id='imu_el_pos'></td>\n\
+        <td rowspan='2' id='imu_el_pos_dec'></td>\n\
+        <td id='off_el'>XXX</td>\n\
+        <td><input id='el_off_in' size='6' />° <input type='button' onclick='set_el_off(0)' value='Set' /></td>\n\
+        <td rowspan='2' align='center' id='tgt_and_off_el'>XXX</td>\n\
+        </tr>\n\
+        <tr>\n\
+        <td colspan='2'>\n\
+        <input type='button' onclick='set_el_off(-10)' value='---' />\n\
+        <input type='button' onclick='set_el_off(-1)' value='--' />\n\
+        <input type='button' onclick='set_el_off(-0.1)' value='-' />\n\
+        <input type='button' onclick='set_el_off(0.1)' value='+' />\n\
+        <input type='button' onclick='set_el_off(1)' value='++' />\n\
+        <input type='button' onclick='set_el_off(10)' value='+++' />\n\
+        </td>\n\
         </tr>\n\
         <tr>\n\
         <td>Elevation Speed</td>\n\
@@ -435,7 +499,7 @@ static void print_page(struct netconn *conn)
         <table style='float:left;'>\n\
         <tr>\n\
         <td width='100'>Bus</td>\n\
-        <td width='70'></td>\n\
+        <td width='80'></td>\n\
         <td width='80'>Voltage</td>\n\
         <td width='80'>Power</td>\n\
         </tr>\n\
@@ -477,56 +541,66 @@ static void print_page(struct netconn *conn)
         </table>\n\
         </div>\n\
         <div class='container' style='width:531px;height:116px;'>\n\
-        <h1>GNSS</h1>\n\
+        <h1>GPS</h1>\n\
         <hr />\n\
         <table style='float:left;'>\n\
         <tr>\n\
+        <td width='70'>Time</td>\n\
+        <td width='175' id='time'></td>\n\
+        <td width='0' style='border:0;'></td>\n\
         <td width='40'>Lat</td>\n\
-        <td width='70'>53.5000°</td>\n\
-        <td width='10' style='border:0;'></td>\n\
-        <td width='40'>Alt</td>\n\
-        <td width='80'>53.5m</td>\n\
-        <td width='10' style='border:0;'></td>\n\
-        <td width='100'>OXCO Counts</td>\n\
-        <td width='100'>20000000 &#x1F7E2;</td>\n\
+        <td width='70' id='lat'></td>\n\
+        <td width='0' style='border:0;'></td>\n\
+        <td width='35'>Alt</td>\n\
+        <td width='60' id='alt'></td>\n\
         </tr>\n\
         <tr>\n\
+        <td>OCXO/DAC</td>\n\
+        <td id='ocxo'></td>\n\
+        <td style='border:0;'></td>\n\
         <td>Lon</td>\n\
-        <td>13.5000°</td>\n\
+        <td id='lon'></td>\n\
         <td style='border:0;'></td>\n\
         <td>Sats</td>\n\
-        <td>8</td>\n\
-        <td style='border:0;'></td>\n\
-        <td>DAC Value</td>\n\
-        <td>1980</td>\n\
+        <td id='sats'></td>\n\
         </tr>\n\
         </table>\n\
         </div>\n\
-        <div class='container' style='width:630px;height:410px;'>\n\
+        <div class='container' style='width:1349px;height:410px;'>\n\
         <h1>Automation <input type='button' onclick='calibrate()' value='Calibrate Azimuth'></h1>\n\
         <hr />\n\
         <table style='float:left;'>\n\
         <tr>\n\
         <td width='80'></td>\n\
-        <td width='60'>Target</td>\n\
-        <td width='130'>Set Target</td>\n\
+        <td width='70'>Target</td>\n\
+        <td width='120'>Set Target</td>\n\
         </tr>\n\
     ");
 
     for(uint8_t i=0; i<2; i++)
     {
-        HTTP_PRINT("<tr>");
-        chsnprintf(buf, sizeof(buf), "<td>%s</td>", name[i]);
+        chsnprintf(buf, sizeof(buf),
+            "<tr>\n\
+            <td rowspan='2'>%s</td>\n\
+            <td id='tgt_%s'></td>\n\
+            <td><input id='%s_tgt_in' size='6' />° <input type='button' onclick='set_%s_tgt(0)' value='Set' /></td>\n\
+            </tr>\n\
+            <tr>\n\
+            <td colspan='2'>\n\
+            <input type='button' onclick='set_%s_tgt(-10)' value='---' />\n\
+            <input type='button' onclick='set_%s_tgt(-1)' value='--' />\n\
+            <input type='button' onclick='set_%s_tgt(-0.1)' value='-' />\n\
+            <input type='button' onclick='set_%s_tgt(0.1)' value='+' />\n\
+            <input type='button' onclick='set_%s_tgt(1)' value='++' />\n\
+            <input type='button' onclick='set_%s_tgt(10)' value='+++' />\n\
+            </td>\n\
+            </tr>", name[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i]);
         HTTP_PRINT_COPY(buf);
-        chsnprintf(buf, sizeof(buf), "<td id='tgt_%s'></td>", abbrevation[i]);
-        HTTP_PRINT_COPY(buf);
-        chsnprintf(buf, sizeof(buf), "<td><input id='%s_tgt_in' size='7' />° <input type='button' onclick='set_%s_tgt()' value='Set' /></td>", abbrevation[i], abbrevation[i]);
-        HTTP_PRINT_COPY(buf);
-        HTTP_PRINT("</tr>");
+
     }
 
     HTTP_PRINT(
-        "<tr></tr>\n\
+        "<tr height='5'></tr>\n\
         <tr>\n\
         <td>API</td>\n\
         <td colspan='2' id='api_connected'></td>\n\
@@ -551,10 +625,10 @@ static void print_page(struct netconn *conn)
 }
 
 static void print_json(struct netconn *conn) {
-    char buf[512];
-    uint32_t len = chsnprintf(buf, sizeof(buf), "{\"mde\":{\"mot\":[%d,%d,%d],\"enc\":{\"pos\":%d,\"spd\":%d}},",
+    char buf[1024];
+    uint32_t len = chsnprintf(buf, sizeof(buf), "{\"mde\":{\"mot\":[%d,%d,%d],\"enc\":{\"pos\":%d,\"spd\":%d,\"off\":%d}},",
         mde_get_trq_az(), mde_get_trq_el(), mde_get_trq_sk(),
-        mde_get_az_enc_pos(), mde_get_az_enc_spd());
+        mde_get_az_enc_pos(), mde_get_az_enc_spd(), mde_get_az_enc_off());
     len += chsnprintf(&buf[len], sizeof(buf)-len, "\"imu\":{\"accel\":[%d,%d,%d],\"rot\":[%d,%d,%d],\"el\":{\"pos\":%d,\"spd\":%d}},",
         imu_get_accel_x(), imu_get_accel_y(), imu_get_accel_z(), imu_get_rot_x(), imu_get_rot_y(), imu_get_rot_z(), imu_get_el_pos(), imu_get_el_spd());
     len += chsnprintf(&buf[len], sizeof(buf)-len, "\"ctrl\":{\"state\":[\"%s\",\"%s\",\"%s\"],\"tgt\":[%d,%d,%d]},",
@@ -591,7 +665,24 @@ static void print_json(struct netconn *conn) {
     len += chsnprintf(&buf[len], sizeof(buf)-len, "\"pwr\":{\"ext5\":[%d,%d],\"ext24\":[%d,%d],\"mde\":[%d,%d],\"ocxo\":[%d,%d],\"lna1\":[%d,%d],\"lna2\":[%d,%d]},",
         ext5_v, ext5_p, ext24_v, ext24_p, mde_v, mde_p, ocxo_v, -ocxo_p, lna1_v, lna1_p, lna2_v, lna2_p);
 
+    uint32_t date;
+    uint32_t time;
+    float lat;
+    float lon;
+    int16_t alt;
+    uint8_t sats;
+    uint8_t sats_sol;
+    bool pulse;
+    get_gps_data(&date, &time, &lat, &lon, &alt, &sats, &sats_sol, &pulse);
+
+    len += chsnprintf(&buf[len], sizeof(buf)-len, "\"gps\":{\"date\":%d,\"time\":%d,\"lat\":%.5f,\"lon\":%.5f,\"alt\":%d,\"sats\":%d,\"sats_sol\":%d,\"pulse\":%d},",
+        date, time, lat, lon, alt, sats, sats_sol, pulse);
+
+    len += chsnprintf(&buf[len], sizeof(buf)-len, "\"ocxo\":{\"cntr\":%d,\"dac\":%d},",
+        ocxo_get_cntr(), ocxo_get_dac_val());
+
     len += chsnprintf(&buf[len], sizeof(buf)-len, "\"api_connected\":%d,\"time\":%d}", api_is_connected(), chVTGetSystemTimeX());
+
     HTTP_PRINT("HTTP/1.1 200 OK\r\nContent-type: application/json\r\n\r\n");
     HTTP_PRINT_COPY(buf);
 }
@@ -635,7 +726,9 @@ static void server_serve(struct netconn *conn) {
         } else if(strncmp((char*)data, "GET /set/tar/sk/", 16) == 0) {
             sk_set_tgt_pos(atoi((char*)&data[16]));
             print_ack(conn);
-
+        } else if(strncmp((char*)data, "GET /set/off/az/", 16) == 0) {
+            mde_set_az_enc_off(atoi((char*)&data[16]));
+            print_ack(conn);
 
         } else if(strncmp((char*)data, "GET /sw/lna/", 12) == 0) {
             bool sw = atoi((char*)&data[12]);
