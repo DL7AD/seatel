@@ -7,7 +7,7 @@ static int8_t motor_el = 0;
 static int8_t motor_sk = 0;
 
 static uint16_t enc_az = 0;
-static int16_t enc_az_off = 0;
+static uint16_t enc_az_off = 0;
 static int16_t enc_az_speed = 0;
 
 static bool power_up; // Command flag to power up MDE
@@ -218,12 +218,12 @@ void mde_set_trq_sk(int8_t trq) {
     motor_sk = trq;
 }
 
-int16_t mde_get_az_enc_off(void)
+uint16_t mde_get_az_enc_off(void)
 {
     return enc_az_off;
 }
 
-void mde_set_az_enc_off(int16_t off)
+void mde_set_az_enc_off(uint16_t off)
 {
     enc_az_off = off;
 }

@@ -198,7 +198,12 @@ static void print_page(struct netconn *conn)
         <script type='text/javascript'>\n\
         const zeroPad = (num, places) => String(num).padStart(places, '0');\n\
         var az_tgt,el_tgt,sk_tgt,az_off,el_off = 0;\n\
+        var mutex_req;\n\
+        var mutex_deb;\n\
         var req = function() {\n\
+            if(mutex_req)\n\
+                return;\n\
+            mutex_req = true;\n\
             $.ajax({\n\
                 dataType: \"json\",\n\
                 url: \"/state.json\",\n\
@@ -236,6 +241,8 @@ static void print_page(struct netconn *conn)
                     $('#imu_el_spd').text(data['imu']['el']['spd']);\n\
                     $('#imu_el_spd_dec').text((data['imu']['el']['spd']*360/65536).toFixed(2)+'°');\n\
                     var az = data['mde']['enc']['pos'] + data['mde']['enc']['off'];\n\
+                    if(az>65536)\n\
+                        az-=65536;\n\
                     var el = data['imu']['el']['pos'];\n\
                     var left = 141-(az-data['ctrl']['tgt'][0])*360/65536*60;\n\
                     var top  = 141+(el-data['ctrl']['tgt'][1])*360/65536*60;\n\
@@ -282,11 +289,15 @@ static void print_page(struct netconn *conn)
                     $('#alt').text((data['gps']['alt']).toFixed(1)+'m');\n\
                     $('#sats').text(data['gps']['sats_sol']+'/x');\n\
                     $('#ocxo').text(data['ocxo']['cntr']+' / '+data['ocxo']['dac']);\n\
+                    mutex_req = false;\n\
                 },\n\
                 timeout: 1000\n\
             });\n\
         }\n\
         var deb = function() {\n\
+            if(mutex_deb)\n\
+                return;\n\
+            mutex_deb = true;\n\
             $.ajax({\n\
                 dataType: \"text\",\n\
                 url: \"/debug\",\n\
@@ -298,13 +309,14 @@ static void print_page(struct netconn *conn)
                             $('#debug').scrollTop($('#debug').prop('scrollHeight'));\n\
                         }\n\
                     }\n\
+                    mutex_deb = false;\n\
                 },\n\
                 timeout: 1000\n\
             });\n\
         }\n\
         var start_req = function() {\n\
-            window.setInterval(req, 100);\n\
-            window.setInterval(deb, 100);\n\
+            window.setInterval(req, 200);\n\
+            window.setInterval(deb, 500);\n\
         }\n\
         var load = function() {\n\
             window.setTimeout(start_req, 500);\n\
@@ -335,8 +347,8 @@ static void print_page(struct netconn *conn)
             } else {      $.get('/set/off/az/'+Math.round($('#az_off_in').val()*182.04)); }\n\
         }\n\
         var set_el_off = function(el) {\n\
-            if(el != 0) { $.get('/set/tar/el/'+Math.round(el_off+el*182.04));\n\
-            } else {      $.get('/set/tar/el/'+Math.round($('#el_off_in').val()*182.04)); }\n\
+            if(el != 0) { $.get('/set/off/el/'+Math.round(el_off+el*182.04));\n\
+            } else {      $.get('/set/off/el/'+Math.round($('#el_off_in').val()*182.04)); }\n\
         }\n\
         var sw = function(tar, state) {\n\
             $.get('/sw/'+tar+'/'+state);\n\

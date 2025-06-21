@@ -10,7 +10,7 @@ static const GPTConfig gpt_cfg = {
 };
 
 static const DACConfig dac_cfg = {
-    .init     = 1850U,
+    .init     = 2050U,
     .datamode = DAC_DHRM_12BIT_RIGHT,
     .cr       = 0
 };
@@ -19,7 +19,7 @@ static int32_t ocxo_cntr[3] = {0,1,2};
 static uint32_t cntr_i = 0;
 static int32_t out_ocxo_cntr;
 static systime_t last_pulse;
-static uint16_t dac_val = 1850;
+static uint16_t dac_val = 2050;
 
 static THD_WORKING_AREA(waOCXO, 1024);
 static THD_FUNCTION(ocxo, arg)

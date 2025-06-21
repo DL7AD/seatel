@@ -218,7 +218,7 @@ static THD_FUNCTION(ctrl, arg)
             }
             case MOTOR_STATE_CONST_SPEED:
             {
-                int16_t spd = abs(imu_get_el_spd()) < 70 ? 0 : imu_get_el_spd();
+                int16_t spd = abs(imu_get_el_spd()) < 150 ? 0 : imu_get_el_spd();
                 int16_t moving_trq = (el_tgt_spd-spd)/10;
                 int16_t trq = moving_trq + static_trq;
                 if(trq >  25) trq =  25;

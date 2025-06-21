@@ -84,6 +84,7 @@ static void server_serve(struct netconn *conn) {
                     // Get position of rotator
                     az = (mde_get_az_enc_pos() + mde_get_az_enc_off()) / 182.044;
                     el =  imu_get_el_pos()                             / 182.044;
+                    if(el<0) el=0;
                     chsnprintf(buf, sizeof(buf), "%.2f\n%.2f\n", az, el);
                     netconn_write(conn, buf, strlen(buf), NETCONN_COPY);
                     break;
