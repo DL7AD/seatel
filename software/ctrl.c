@@ -189,7 +189,7 @@ static THD_FUNCTION(ctrl, arg)
         }
 
         // Elevation control
-        int16_t imu = imu_get_el_pos();
+        int16_t imu = imu_get_el_pos() + imu_get_el_off();
         int8_t trq0  = 0; // Holding torque required for elevation 0°
         int8_t trq90 = 0; // Holding torque required for elevation 90°
         int8_t static_trq = trq0+(trq90-trq0) * imu / 16384;

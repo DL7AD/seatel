@@ -432,6 +432,29 @@ static void print_page(struct netconn *conn)
         </td>\n\
         </tr>\n\
         <tr>\n\
+        <td rowspan='2'>Elevation</td>\n\
+        <td rowspan='2' id='imu_el_pos'></td>\n\
+        <td rowspan='2' id='imu_el_pos_dec'></td>\n\
+        <td id='off_el'></td>\n\
+        <td><input id='el_off_in' size='6' />° <input type='button' onclick='set_el_off(0)' value='Set' /></td>\n\
+        <td rowspan='2' align='center' id='tgt_and_off_el'></td>\n\
+        </tr>\n\
+        <tr>\n\
+        <td colspan='2'>\n\
+        <input type='button' onclick='set_el_off(-10)' value='---' />\n\
+        <input type='button' onclick='set_el_off(-1)' value='--' />\n\
+        <input type='button' onclick='set_el_off(-0.1)' value='-' />\n\
+        <input type='button' onclick='set_el_off(0.1)' value='+' />\n\
+        <input type='button' onclick='set_el_off(1)' value='++' />\n\
+        <input type='button' onclick='set_el_off(10)' value='+++' />\n\
+        </td>\n\
+        </tr>\n\
+        <tr>\n\
+        <td>Elevation Speed</td>\n\
+        <td id='imu_el_spd'></td>\n\
+        <td id='imu_el_spd_dec'></td>\n\
+        </tr>\n\
+        <tr>\n\
         <td>Azimuth Encoder Speed</td>\n\
         <td id='enc_spd'></td>\n\
         <td id='enc_spd_dec'></td>\n\
@@ -465,29 +488,6 @@ static void print_page(struct netconn *conn)
         <td>IMU Rotation Z</td>\n\
         <td id='imu_rot_z'></td>\n\
         <td id='imu_rot_z_dec'></td>\n\
-        </tr>\n\
-        <tr>\n\
-        <td rowspan='2'>Elevation</td>\n\
-        <td rowspan='2' id='imu_el_pos'></td>\n\
-        <td rowspan='2' id='imu_el_pos_dec'></td>\n\
-        <td id='off_el'></td>\n\
-        <td><input id='el_off_in' size='6' />° <input type='button' onclick='set_el_off(0)' value='Set' /></td>\n\
-        <td rowspan='2' align='center' id='tgt_and_off_el'></td>\n\
-        </tr>\n\
-        <tr>\n\
-        <td colspan='2'>\n\
-        <input type='button' onclick='set_el_off(-10)' value='---' />\n\
-        <input type='button' onclick='set_el_off(-1)' value='--' />\n\
-        <input type='button' onclick='set_el_off(-0.1)' value='-' />\n\
-        <input type='button' onclick='set_el_off(0.1)' value='+' />\n\
-        <input type='button' onclick='set_el_off(1)' value='++' />\n\
-        <input type='button' onclick='set_el_off(10)' value='+++' />\n\
-        </td>\n\
-        </tr>\n\
-        <tr>\n\
-        <td>Elevation Speed</td>\n\
-        <td id='imu_el_spd'></td>\n\
-        <td id='imu_el_spd_dec'></td>\n\
         </tr>\n\
         </table>\n\
         <div stlye='float:left;'>\n\
