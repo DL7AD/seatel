@@ -401,7 +401,7 @@ static void print_page(struct netconn *conn)
     HTTP_PRINT(
         "</table>\n\
         </div>\n\
-        <div class='container' style='width:1349px;height:500px;'>\n\
+        <div class='container' style='width:1188px;height:500px;'>\n\
         <h1>Sensors</h1>\n\
         <hr />\n\
         <table style='float:left;'>\n\
@@ -510,6 +510,54 @@ static void print_page(struct netconn *conn)
         </div>\n\
         </div>\n\
         </div>\n\
+        <div class='container' style='width:1188px;height:410px;'>\n\
+        <h1>Automation <input type='button' onclick='calibrate()' value='Calibrate Azimuth'></h1>\n\
+        <hr />\n\
+        <table style='float:left;'>\n\
+        <tr>\n\
+        <td width='80'></td>\n\
+        <td width='70'>Target</td>\n\
+        <td width='120'>Set Target</td>\n\
+        </tr>\n\
+    ");
+
+    for(uint8_t i=0; i<2; i++)
+    {
+        chsnprintf(buf, sizeof(buf),
+            "<tr>\n\
+            <td rowspan='2'>%s</td>\n\
+            <td id='tgt_%s'></td>\n\
+            <td><input id='%s_tgt_in' size='6' />° <input type='button' onclick='set_%s_tgt(0)' value='Set' /></td>\n\
+            </tr>\n\
+            <tr>\n\
+            <td colspan='2'>\n\
+            <input type='button' onclick='set_%s_tgt(-10)' value='---' />\n\
+            <input type='button' onclick='set_%s_tgt(-1)' value='--' />\n\
+            <input type='button' onclick='set_%s_tgt(-0.1)' value='-' />\n\
+            <input type='button' onclick='set_%s_tgt(0.1)' value='+' />\n\
+            <input type='button' onclick='set_%s_tgt(1)' value='++' />\n\
+            <input type='button' onclick='set_%s_tgt(10)' value='+++' />\n\
+            </td>\n\
+            </tr>", name[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i]);
+        HTTP_PRINT_COPY(buf);
+
+    }
+
+    HTTP_PRINT(
+        "<tr height='5'></tr>\n\
+        <tr>\n\
+        <td>API</td>\n\
+        <td colspan='2' id='api_connected'></td>\n\
+        </tr>\n\
+        </table>\n\
+        <div style='float:left;margin-left:20px;'>\n\
+        Deviation diagram<br />\n\
+        <div id='deviation'>\n\
+        <div class='cross' id='cross_deviation'></div>\n\
+        <div id='circle_deviation' class='circle'></div></div>\n\
+        0.5°/div, red: target, center: pointing\n\
+        </div>\n\
+        </div>\n\
         <div class='container' style='width:531px;height:276px;'>\n\
         <h1>Power</h1>\n\
         <hr />\n\
@@ -582,54 +630,6 @@ static void print_page(struct netconn *conn)
         <td id='sats'></td>\n\
         </tr>\n\
         </table>\n\
-        </div>\n\
-        <div class='container' style='width:1349px;height:410px;'>\n\
-        <h1>Automation <input type='button' onclick='calibrate()' value='Calibrate Azimuth'></h1>\n\
-        <hr />\n\
-        <table style='float:left;'>\n\
-        <tr>\n\
-        <td width='80'></td>\n\
-        <td width='70'>Target</td>\n\
-        <td width='120'>Set Target</td>\n\
-        </tr>\n\
-    ");
-
-    for(uint8_t i=0; i<2; i++)
-    {
-        chsnprintf(buf, sizeof(buf),
-            "<tr>\n\
-            <td rowspan='2'>%s</td>\n\
-            <td id='tgt_%s'></td>\n\
-            <td><input id='%s_tgt_in' size='6' />° <input type='button' onclick='set_%s_tgt(0)' value='Set' /></td>\n\
-            </tr>\n\
-            <tr>\n\
-            <td colspan='2'>\n\
-            <input type='button' onclick='set_%s_tgt(-10)' value='---' />\n\
-            <input type='button' onclick='set_%s_tgt(-1)' value='--' />\n\
-            <input type='button' onclick='set_%s_tgt(-0.1)' value='-' />\n\
-            <input type='button' onclick='set_%s_tgt(0.1)' value='+' />\n\
-            <input type='button' onclick='set_%s_tgt(1)' value='++' />\n\
-            <input type='button' onclick='set_%s_tgt(10)' value='+++' />\n\
-            </td>\n\
-            </tr>", name[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i], abbrevation[i]);
-        HTTP_PRINT_COPY(buf);
-
-    }
-
-    HTTP_PRINT(
-        "<tr height='5'></tr>\n\
-        <tr>\n\
-        <td>API</td>\n\
-        <td colspan='2' id='api_connected'></td>\n\
-        </tr>\n\
-        </table>\n\
-        <div style='float:left;margin-left:20px;'>\n\
-        Deviation diagram<br />\n\
-        <div id='deviation'>\n\
-        <div class='cross' id='cross_deviation'></div>\n\
-        <div id='circle_deviation' class='circle'></div></div>\n\
-        0.5°/div, red: target, center: pointing\n\
-        </div>\n\
         </div>\n\
         <div class='container' style='width:630px;height:410px;'>\n\
         <h1>Debug</h1>\n\
