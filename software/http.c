@@ -290,7 +290,7 @@ static void print_page(struct netconn *conn)
                     $('#lat').text((data['gps']['lat']).toFixed(5)+'°');\n\
                     $('#lon').text((data['gps']['lon']).toFixed(5)+'°');\n\
                     $('#alt').text((data['gps']['alt']).toFixed(1)+'m');\n\
-                    $('#sats').text(data['gps']['sats_sol']+'/x');\n\
+                    $('#sats').text(data['gps']['sats_sol']);\n\
                     $('#ocxo').text(data['ocxo']['cntr']+' / '+data['ocxo']['dac']);\n\
                 },\n\
                 complete: function(event,xhr) {\n\
