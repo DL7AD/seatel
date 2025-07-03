@@ -246,7 +246,7 @@ static void print_page(struct netconn *conn)
                     var az = data['mde']['enc']['pos'] + data['mde']['enc']['off'];\n\
                     if(az>65536)\n\
                         az-=65536;\n\
-                    var el = data['imu']['el']['pos'];\n\
+                    var el = data['imu']['el']['pos'] + data['imu']['el']['off'];\n\
                     var left = 141-(az-data['ctrl']['tgt'][0])*360/65536*60;\n\
                     var top  = 141+(el-data['ctrl']['tgt'][1])*360/65536*60;\n\
                     if(top >  292) top  = 292;\n\
@@ -292,6 +292,8 @@ static void print_page(struct netconn *conn)
                     $('#alt').text((data['gps']['alt']).toFixed(1)+'m');\n\
                     $('#sats').text(data['gps']['sats_sol']+'/x');\n\
                     $('#ocxo').text(data['ocxo']['cntr']+' / '+data['ocxo']['dac']);\n\
+                },\n\
+                complete: function(event,xhr) {\n\
                     mutex_req = false;\n\
                 },\n\
                 timeout: 1000\n\
