@@ -15,6 +15,7 @@ static uint16_t imu_rot_y0 = 2070;
 static uint16_t imu_rot_z = 0;
 
 static int16_t imu_el_pos = 0;
+static int16_t imu_el_off = 0;
 static int16_t imu_el_spd = 0;
 
 static const SPIConfig spi_accel1 = {
@@ -384,4 +385,14 @@ void imu_calibrate(void)
         chThdSleepMilliseconds(10);
     }
     imu_rot_y0 = accu/100;
+}
+
+int16_t imu_get_el_off(void)
+{
+    return imu_el_off;
+}
+
+void imu_set_el_off(int16_t off)
+{
+    imu_el_off = off;
 }

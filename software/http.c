@@ -238,6 +238,9 @@ static void print_page(struct netconn *conn)
                     $('#imu_rot_z').text(data['imu']['rot'][2]);\n\
                     $('#imu_el_pos').text(data['imu']['el']['pos']);\n\
                     $('#imu_el_pos_dec').text((data['imu']['el']['pos']*360/65536).toFixed(2)+'°');\n\
+                    $('#off_el').text((data['imu']['el']['off']*360/65536).toFixed(2)+'°');\n\
+                    el_off = data['imu']['el']['off'];\n\
+                    $('#tgt_and_off_el').text(((data['imu']['el']['pos']+data['imu']['el']['off'])*360/65536).toFixed(2)+'°');\n\
                     $('#imu_el_spd').text(data['imu']['el']['spd']);\n\
                     $('#imu_el_spd_dec').text((data['imu']['el']['spd']*360/65536).toFixed(2)+'°');\n\
                     var az = data['mde']['enc']['pos'] + data['mde']['enc']['off'];\n\
@@ -380,8 +383,10 @@ static void print_page(struct netconn *conn)
         chsnprintf(buf, sizeof(buf), "<td id='motor_%s'></td>", abbrevation[i]);
         HTTP_PRINT_COPY(buf);
         HTTP_PRINT("<td>");
-        for(int8_t torque=-60; torque<=60; torque+=5)
+        int8_t torque_table[] = {-50,-40,-30,-25,-20,-15,-10,-5,-3,0,3,5,10,15,20,25,30,40,50};
+        for(uint8_t i=0; i<sizeof(torque_table); i++)
         {
+            int8_t torque = torque_table[i];
             if(torque) {
                 chsnprintf(buf, sizeof(buf), "<input type='button' value='%+03d' onclick='set_motor(\"%s\",%d)' />", torque, abbrevation[i], torque);
             } else {
@@ -404,7 +409,7 @@ static void print_page(struct netconn *conn)
         <td width='200'>Sensor</td>\n\
         <td width='100'>Raw</td>\n\
         <td width='100'>Decoded</td>\n\
-        <td width='80'>Offset</td>\n\
+        <td width='93'>Offset</td>\n\
         <td width='120'>Set Offset</td>\n\
         <td width='80'>Corrected</td>\n\
         </tr>\n\
@@ -465,9 +470,9 @@ static void print_page(struct netconn *conn)
         <td rowspan='2'>Elevation</td>\n\
         <td rowspan='2' id='imu_el_pos'></td>\n\
         <td rowspan='2' id='imu_el_pos_dec'></td>\n\
-        <td id='off_el'>XXX</td>\n\
+        <td id='off_el'></td>\n\
         <td><input id='el_off_in' size='6' />° <input type='button' onclick='set_el_off(0)' value='Set' /></td>\n\
-        <td rowspan='2' align='center' id='tgt_and_off_el'>XXX</td>\n\
+        <td rowspan='2' align='center' id='tgt_and_off_el'></td>\n\
         </tr>\n\
         <tr>\n\
         <td colspan='2'>\n\
@@ -641,8 +646,12 @@ static void print_json(struct netconn *conn) {
     uint32_t len = chsnprintf(buf, sizeof(buf), "{\"mde\":{\"mot\":[%d,%d,%d],\"enc\":{\"pos\":%d,\"spd\":%d,\"off\":%d}},",
         mde_get_trq_az(), mde_get_trq_el(), mde_get_trq_sk(),
         mde_get_az_enc_pos(), mde_get_az_enc_spd(), mde_get_az_enc_off());
-    len += chsnprintf(&buf[len], sizeof(buf)-len, "\"imu\":{\"accel\":[%d,%d,%d],\"rot\":[%d,%d,%d],\"el\":{\"pos\":%d,\"spd\":%d}},",
-        imu_get_accel_x(), imu_get_accel_y(), imu_get_accel_z(), imu_get_rot_x(), imu_get_rot_y(), imu_get_rot_z(), imu_get_el_pos(), imu_get_el_spd());
+
+    len += chsnprintf(&buf[len], sizeof(buf)-len, "\"imu\":{\"accel\":[%d,%d,%d],\"rot\":[%d,%d,%d],\"el\":{\"pos\":%d,\"spd\":%d,\"off\":%d}},",
+        imu_get_accel_x(), imu_get_accel_y(), imu_get_accel_z(),
+        imu_get_rot_x(), imu_get_rot_y(), imu_get_rot_z(),
+        imu_get_el_pos(), imu_get_el_spd(), imu_get_el_off());
+
     len += chsnprintf(&buf[len], sizeof(buf)-len, "\"ctrl\":{\"state\":[\"%s\",\"%s\",\"%s\"],\"tgt\":[%d,%d,%d]},",
         MOTOR_STATE(az_get_state()), MOTOR_STATE(el_get_state()), MOTOR_STATE(sk_get_state()),
         az_get_tgt_pos(), el_get_tgt_pos(), sk_get_tgt_pos());
@@ -740,6 +749,9 @@ static void server_serve(struct netconn *conn) {
             print_ack(conn);
         } else if(strncmp((char*)data, "GET /set/off/az/", 16) == 0) {
             mde_set_az_enc_off(atoi((char*)&data[16]));
+            print_ack(conn);
+        } else if(strncmp((char*)data, "GET /set/off/el/", 16) == 0) {
+            imu_set_el_off(atoi((char*)&data[16]));
             print_ack(conn);
 
         } else if(strncmp((char*)data, "GET /sw/lna/", 12) == 0) {

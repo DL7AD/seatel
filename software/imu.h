@@ -31,4 +31,7 @@ int16_t imu_get_el_spd(void);
 
 void imu_calibrate(void);
 
+int16_t imu_get_el_off(void);
+void imu_set_el_off(int16_t off);
+
 #endif
