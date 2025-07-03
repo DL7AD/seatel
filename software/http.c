@@ -321,7 +321,7 @@ static void print_page(struct netconn *conn)
         }\n\
         var start_req = function() {\n\
             window.setInterval(req, 200);\n\
-            window.setInterval(deb, 500);\n\
+            window.setInterval(deb, 1000);\n\
         }\n\
         var load = function() {\n\
             window.setTimeout(start_req, 500);\n\
@@ -512,7 +512,7 @@ static void print_page(struct netconn *conn)
         </div>\n\
         </div>\n\
         </div>\n\
-        <div class='container' style='width:1188px;height:410px;'>\n\
+        <div class='container' style='width:639px;height:410px;'>\n\
         <h1>Automation <input type='button' onclick='calibrate()' value='Calibrate Azimuth'></h1>\n\
         <hr />\n\
         <table style='float:left;'>\n\
