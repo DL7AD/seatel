@@ -95,7 +95,7 @@ static void print_page(struct netconn *conn)
         #pointing {\n\
             width: 301px;\n\
             height: 301px;\n\
-            margin: 25px 30px;\n\
+            margin: 28px 60px;\n\
             padding: 0;\n\
             float: left;\n\
             background-size: 151px 151px;\n\
@@ -403,7 +403,7 @@ static void print_page(struct netconn *conn)
     HTTP_PRINT(
         "</table>\n\
         </div>\n\
-        <div class='container' style='width:1188px;height:500px;'>\n\
+        <div class='container' style='width:1188px;height:470px;'>\n\
         <h1>Sensors</h1>\n\
         <hr />\n\
         <table style='float:left;'>\n\
