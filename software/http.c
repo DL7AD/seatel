@@ -386,9 +386,9 @@ static void print_page(struct netconn *conn)
         HTTP_PRINT_COPY(buf);
         HTTP_PRINT("<td>");
         int8_t torque_table[] = {-50,-40,-30,-25,-20,-15,-10,-5,-3,0,3,5,10,15,20,25,30,40,50};
-        for(uint8_t i=0; i<sizeof(torque_table); i++)
+        for(uint8_t j=0; j<sizeof(torque_table); j++)
         {
-            int8_t torque = torque_table[i];
+            int8_t torque = torque_table[j];
             if(torque) {
                 chsnprintf(buf, sizeof(buf), "<input type='button' value='%+03d' onclick='set_motor(\"%s\",%d)' />", torque, abbrevation[i], torque);
             } else {
